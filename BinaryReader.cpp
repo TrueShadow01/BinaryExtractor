@@ -17,7 +17,7 @@ uint32_t BinaryReader::ReadUInt32() {
 		exit(1);
 	}
 
-	// bit shifting stuff
+	// bit shifting stuff (little endian)
 	uint32_t value = (uint32_t)bytesToRead[0] | ((uint32_t)bytesToRead[1] << 8) | ((uint32_t)bytesToRead[2] << 16) | ((uint32_t)bytesToRead[3] << 24);
 
 	return value;
