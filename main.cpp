@@ -3,6 +3,16 @@
 
 #include "BinaryReader.h"
 
+struct ArchiveHeader {
+	uint32_t magic;
+	uint32_t version;
+	uint32_t fileCount;
+};
+
+ArchiveHeader ReadHeader(BinaryReader& binReader);
+
+constexpr uint32_t MAGIC_FORG = 0x47524F46;
+
 int main() {
 	std::cout << "Custom BIN Extractor\n" << std::endl;
 
@@ -14,17 +24,26 @@ int main() {
 	}
 
 	BinaryReader binReader(file);
+	ArchiveHeader header = ReadHeader(binReader);
 
-	// read the file magic to determine it's type
-	uint32_t magic = binReader.ReadUInt32();
-
-	std::cout << "File magic: " << std::hex << magic << std::endl;;
-
-	// read it's version
-	uint32_t version = 0;
-	version = binReader.ReadUInt32();
-
-	std::cout << "File Version: " << version << std::endl;
+	std::cout << "File magic: " << std::hex << header.magic << std::endl;;
+	std::cout << "File Version: " << header.version << std::endl;
 
 	exit(0);
+}
+
+ArchiveHeader ReadHeader(BinaryReader& binReader) {
+	ArchiveHeader header;
+
+	header.magic = binReader.ReadUInt32();
+
+	if (header.magic != MAGIC_FORG) {
+		std::cerr << "Invalid Archive format!" << std::endl;
+		exit(1);
+	}
+
+	header.version = binReader.ReadUInt32();
+	header.fileCount = binReader.ReadUInt32();
+
+	return header;
 }
