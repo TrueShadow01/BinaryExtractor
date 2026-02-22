@@ -43,6 +43,14 @@ int main() {
 		entries.push_back(ReadFileEntry(binReader));
 	}
 
+	size_t metadataEnd = binReader.Tell();
+	for (const auto& entry : entries) {
+		if (entry.offset < metadataEnd) {
+			std::cerr << "Entry offset inside metadata region!" << std::endl;
+			exit(1);
+		}
+	}
+
 	std::cout << "File magic: " << std::hex << header.magic << std::endl;;
 	std::cout << "File Version: " << header.version << std::endl;
 	std::cout << "File Count: " << header.fileCount << std::endl;
