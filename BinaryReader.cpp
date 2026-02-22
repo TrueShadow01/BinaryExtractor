@@ -47,3 +47,22 @@ size_t BinaryReader::Tell() {
 
 	return static_cast<size_t>(pos);
 }
+
+// reads the number of bytes specified with count
+std::vector<uint8_t> BinaryReader::ReadBytes(size_t count) {
+	std::vector<uint8_t> buffer(count);
+	m_file.read(reinterpret_cast<char*>(buffer.data()), count);
+	// error checking
+	if (!m_file) {
+		std::cerr << "Failed to read " << count << " bytes!" << std::endl;
+		exit(1);
+	}
+
+	return buffer;
+}
+
+// reads a string of a specific length, specified by length
+std::string BinaryReader::ReadString(size_t length) {
+	auto bytes = ReadBytes(length);
+	return std::string(bytes.begin(), bytes.end());
+}

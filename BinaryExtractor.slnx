@@ -3,5 +3,5 @@
     <Platform Name="x64" />
     <Platform Name="x86" />
   </Configurations>
-  <Project Path="BinaryExtractor.vcxproj" />
+  <Project Path="BinaryExtractor.vcxproj" Id="247313d8-64c9-4cc8-b64e-373e7473df43" />
 </Solution>

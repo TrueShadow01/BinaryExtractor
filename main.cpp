@@ -1,15 +1,24 @@
 #include <iostream>
 #include <fstream>
+#include <string>
 
 #include "BinaryReader.h"
 
 struct ArchiveHeader {
-	uint32_t magic;
-	uint32_t version;
-	uint32_t fileCount;
+	uint32_t magic = 0;
+	uint32_t version = 0;
+	uint32_t fileCount = 0;
 };
 
 ArchiveHeader ReadHeader(BinaryReader& binReader);
+
+struct FileEntry {
+	std::string name = "";
+	uint32_t size = 0;
+	uint32_t offset = 0;
+};
+
+FileEntry ReadFileEntry(BinaryReader& binReader);
 
 constexpr uint32_t MAGIC_FORG = 0x47524F46;
 
@@ -26,9 +35,22 @@ int main() {
 	BinaryReader binReader(file);
 	ArchiveHeader header = ReadHeader(binReader);
 
+	// loop over each entry and store it in a vector incase there is more than 1 file
+	std::vector<FileEntry> entries;
+	for (uint32_t i = 0; i < header.fileCount; i++) {
+		entries.push_back(ReadFileEntry(binReader));
+	}
+
 	std::cout << "File magic: " << std::hex << header.magic << std::endl;;
 	std::cout << "File Version: " << header.version << std::endl;
 	std::cout << "File Count: " << header.fileCount << std::endl;
+
+	// print values from vector
+	for (const auto& entry : entries) {
+		std::cout << "Name: " << entry.name << std::endl;
+		std::cout << "Size: " << entry.size << std::endl;
+		std::cout << "Offset: " << entry.offset << std::endl;
+	}
 
 	exit(0);
 }
@@ -47,4 +69,15 @@ ArchiveHeader ReadHeader(BinaryReader& binReader) {
 	header.fileCount = binReader.ReadUInt32();
 
 	return header;
+}
+
+FileEntry ReadFileEntry(BinaryReader& binReader) {
+	FileEntry entry;
+
+	uint32_t  nameLength = binReader.ReadUInt32();
+	entry.name = binReader.ReadString(nameLength);
+	entry.size = binReader.ReadUInt32();
+	entry.offset = binReader.ReadUInt32();
+
+	return entry;
 }

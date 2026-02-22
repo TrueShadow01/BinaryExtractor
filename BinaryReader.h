@@ -1,5 +1,7 @@
 #pragma once
 #include <fstream>
+#include <vector>
+#include <string>
 
 class BinaryReader
 {
@@ -9,7 +11,8 @@ public:
 	uint32_t ReadUInt32();
 	void Seek(size_t offset);
 	size_t Tell();
-
+	std::vector<uint8_t> ReadBytes(size_t count);
+	std::string ReadString(size_t length);
 private:
 	std::ifstream& m_file;
 };
