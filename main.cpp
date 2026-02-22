@@ -89,7 +89,7 @@ FileEntry ReadFileEntry(BinaryReader& binReader) {
 void ExtractFile(BinaryReader& binReader, const FileEntry& entry) {
 	// check file size
 	size_t fileSize = binReader.GetFileSize();
-	if (entry.offset + entry.size > fileSize) {
+	if (entry.offset > fileSize || entry.size > fileSize || entry.offset > fileSize - entry.size) {
 		std::cerr << "Invalid entry range!" << std::endl;
 		exit(1);
 	}
