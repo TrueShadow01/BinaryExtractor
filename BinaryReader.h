@@ -13,6 +13,7 @@ public:
 	size_t Tell();
 	std::vector<uint8_t> ReadBytes(size_t count);
 	std::string ReadString(size_t length);
+	size_t GetFileSize();
 private:
 	std::ifstream& m_file;
 };

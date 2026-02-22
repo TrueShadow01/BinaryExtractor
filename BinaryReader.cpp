@@ -66,3 +66,29 @@ std::string BinaryReader::ReadString(size_t length) {
 	auto bytes = ReadBytes(length);
 	return std::string(bytes.begin(), bytes.end());
 }
+
+// Gets the file size from m_file
+size_t BinaryReader::GetFileSize() {
+	// get current file pointer positon and store it
+	size_t currentPos = Tell();
+
+	// move file pointer to the end
+	m_file.seekg(0, std::ios::end);
+	if (!m_file) {
+		std::cerr << "Failed to seek to end!" << std::endl;
+		exit(1);
+	}
+
+	// get file size
+	std::streampos fileSize = m_file.tellg();
+	if (fileSize == std::streampos(-1)) {
+		std::cerr << "Failed to get File Size!" << std::endl;
+		exit(1);
+	}
+
+	// move file pointer back to original position
+	m_file.seekg(currentPos, std::ios::beg);
+
+	// return file size
+	return static_cast<size_t>(fileSize);
+}
