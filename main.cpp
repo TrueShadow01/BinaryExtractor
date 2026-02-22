@@ -22,6 +22,8 @@ FileEntry ReadFileEntry(BinaryReader& binReader);
 
 constexpr uint32_t MAGIC_FORG = 0x47524F46;
 
+void ExtractFile(BinaryReader& binReader, const FileEntry& entry);
+
 int main() {
 	std::cout << "Custom BIN Extractor\n" << std::endl;
 
@@ -50,6 +52,7 @@ int main() {
 		std::cout << "Name: " << entry.name << std::endl;
 		std::cout << "Size: " << entry.size << std::endl;
 		std::cout << "Offset: " << entry.offset << std::endl;
+		ExtractFile(binReader, entry);
 	}
 
 	exit(0);
@@ -80,4 +83,30 @@ FileEntry ReadFileEntry(BinaryReader& binReader) {
 	entry.offset = binReader.ReadUInt32();
 
 	return entry;
+}
+
+// Extract the File by parsing the Binary Reader and File Entry
+void ExtractFile(BinaryReader& binReader, const FileEntry& entry) {
+	// move file pointer to specified offset
+	binReader.Seek(entry.offset);
+	std::cout << "Seeking to: " << entry.offset << std::endl;
+	std::cout << "Current pos: " << binReader.Tell() << std::endl;
+
+	// read data
+	auto data = binReader.ReadBytes(entry.size);
+	std::cout << "Read bytes: " << data.size() << std::endl;
+
+	// create output file with the name and it's content
+	std::ofstream out(entry.name, std::ios::binary);
+	if (!out) {
+		std::cerr << "Failed to create output file!" << std::endl;
+		exit(1);
+	}
+
+	out.write(reinterpret_cast<char*>(data.data()), data.size());
+
+	if (!out) {
+		std::cerr << "Failed to write bytes" << std::endl;
+		exit(1);
+	}
 }
