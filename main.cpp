@@ -28,6 +28,7 @@ int main() {
 
 	std::cout << "File magic: " << std::hex << header.magic << std::endl;;
 	std::cout << "File Version: " << header.version << std::endl;
+	std::cout << "File Count: " << header.fileCount << std::endl;
 
 	exit(0);
 }
