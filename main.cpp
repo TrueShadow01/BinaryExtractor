@@ -95,6 +95,15 @@ FileEntry ReadFileEntry(BinaryReader& binReader) {
 		exit(1);
 	}
 
+	// boundary check
+	size_t fileSize = binReader.GetFileSize();
+	size_t currentPos = binReader.Tell();
+
+	if (currentPos + nameLength > fileSize) {
+		std::cerr << "Name exceeds file size!" << std::endl;
+		exit(1);
+	}
+
 	entry.name = binReader.ReadString(nameLength);
 	entry.size = binReader.ReadUInt32();
 	entry.offset = binReader.ReadUInt32();
