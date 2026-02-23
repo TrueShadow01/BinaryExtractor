@@ -78,6 +78,10 @@ ArchiveHeader ReadHeader(BinaryReader& binReader) {
 
 	header.version = binReader.ReadUInt32();
 	header.fileCount = binReader.ReadUInt32();
+	if (header.fileCount == 0 || header.fileCount > 10000) {
+		std::cerr << "Invalid file count!" << std::endl;
+		exit(1);
+	}
 
 	return header;
 }
@@ -86,6 +90,11 @@ FileEntry ReadFileEntry(BinaryReader& binReader) {
 	FileEntry entry;
 
 	uint32_t  nameLength = binReader.ReadUInt32();
+	if (nameLength == 0 || nameLength > 255) {
+		std::cerr << "Invalid name length!" << std::endl;
+		exit(1);
+	}
+
 	entry.name = binReader.ReadString(nameLength);
 	entry.size = binReader.ReadUInt32();
 	entry.offset = binReader.ReadUInt32();
