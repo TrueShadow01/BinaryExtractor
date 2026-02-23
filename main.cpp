@@ -1,6 +1,7 @@
 #include <iostream>
 #include <fstream>
 #include <string>
+#include <stdexcept>
 
 #include "BinaryReader.h"
 
@@ -24,46 +25,52 @@ constexpr uint32_t MAGIC_FORG = 0x47524F46;
 
 void ExtractFile(BinaryReader& binReader, const FileEntry& entry);
 
-int main() {
-	std::cout << "Custom BIN Extractor\n" << std::endl;
+int main(int argc, char* argcv[]) {
+	try {
+		std::cout << "Custom BIN Extractor\n" << std::endl;
 
-	// open the specified file in binary format and check if we are able to open it
-	std::ifstream file("E:\\Extractor Test Files\\test.bin", std::ios::binary);
-	if (!file.is_open()) {
-		std::cerr << "Cannot open File!" << std::endl;
-		exit(1);
-	}
+		// open the specified file in binary format and check if we are able to open it
+		std::ifstream file("E:\\Extractor Test Files\\test.bin", std::ios::binary);
+		if (!file.is_open()) {
+			std::cerr << "Cannot open File!" << std::endl;
+			throw std::runtime_error("Unable to open File!");
+		}
 
-	BinaryReader binReader(file);
-	ArchiveHeader header = ReadHeader(binReader);
+		BinaryReader binReader(file);
+		ArchiveHeader header = ReadHeader(binReader);
 
-	// loop over each entry and store it in a vector incase there is more than 1 file
-	std::vector<FileEntry> entries;
-	for (uint32_t i = 0; i < header.fileCount; i++) {
-		entries.push_back(ReadFileEntry(binReader));
-	}
+		// loop over each entry and store it in a vector incase there is more than 1 file
+		std::vector<FileEntry> entries;
+		for (uint32_t i = 0; i < header.fileCount; i++) {
+			entries.push_back(ReadFileEntry(binReader));
+		}
 
-	size_t metadataEnd = binReader.Tell();
-	for (const auto& entry : entries) {
-		if (entry.offset < metadataEnd) {
-			std::cerr << "Entry offset inside metadata region!" << std::endl;
-			exit(1);
+		size_t metadataEnd = binReader.Tell();
+		for (const auto& entry : entries) {
+			if (entry.offset < metadataEnd) {
+				std::cerr << "Entry offset inside metadata region!" << std::endl;
+				throw std::runtime_error("Entry offset inside metadata region!");
+			}
+		}
+
+		std::cout << "File magic: " << std::hex << header.magic << std::endl;;
+		std::cout << "File Version: " << header.version << std::endl;
+		std::cout << "File Count: " << header.fileCount << std::endl;
+
+		// print values from vector
+		for (const auto& entry : entries) {
+			std::cout << "Name: " << entry.name << std::endl;
+			std::cout << "Size: " << entry.size << std::endl;
+			std::cout << "Offset: " << entry.offset << std::endl;
+			ExtractFile(binReader, entry);
 		}
 	}
-
-	std::cout << "File magic: " << std::hex << header.magic << std::endl;;
-	std::cout << "File Version: " << header.version << std::endl;
-	std::cout << "File Count: " << header.fileCount << std::endl;
-
-	// print values from vector
-	for (const auto& entry : entries) {
-		std::cout << "Name: " << entry.name << std::endl;
-		std::cout << "Size: " << entry.size << std::endl;
-		std::cout << "Offset: " << entry.offset << std::endl;
-		ExtractFile(binReader, entry);
+	catch (const std::exception& e) {
+		std::cerr << "Error: " << e.what() << std::endl;
+		return 1;
 	}
 
-	exit(0);
+	return 0;
 }
 
 ArchiveHeader ReadHeader(BinaryReader& binReader) {
@@ -73,14 +80,14 @@ ArchiveHeader ReadHeader(BinaryReader& binReader) {
 
 	if (header.magic != MAGIC_FORG) {
 		std::cerr << "Invalid Archive format!" << std::endl;
-		exit(1);
+		throw std::runtime_error("Invalid Archive format!");
 	}
 
 	header.version = binReader.ReadUInt32();
 	header.fileCount = binReader.ReadUInt32();
 	if (header.fileCount == 0 || header.fileCount > 10000) {
 		std::cerr << "Invalid file count!" << std::endl;
-		exit(1);
+		throw std::runtime_error("Invalid file count!");
 	}
 
 	return header;
@@ -92,7 +99,7 @@ FileEntry ReadFileEntry(BinaryReader& binReader) {
 	uint32_t  nameLength = binReader.ReadUInt32();
 	if (nameLength == 0 || nameLength > 255) {
 		std::cerr << "Invalid name length!" << std::endl;
-		exit(1);
+		throw std::runtime_error("Invalid name length!");
 	}
 
 	// boundary check
@@ -101,7 +108,7 @@ FileEntry ReadFileEntry(BinaryReader& binReader) {
 
 	if (currentPos + nameLength > fileSize) {
 		std::cerr << "Name exceeds file size!" << std::endl;
-		exit(1);
+		throw std::runtime_error("Name exceeds file size!");
 	}
 
 	entry.name = binReader.ReadString(nameLength);
@@ -117,7 +124,7 @@ void ExtractFile(BinaryReader& binReader, const FileEntry& entry) {
 	size_t fileSize = binReader.GetFileSize();
 	if (entry.offset > fileSize || entry.size > fileSize || entry.offset > fileSize - entry.size) {
 		std::cerr << "Invalid entry range!" << std::endl;
-		exit(1);
+		throw std::runtime_error("Invalid entry range!");
 	}
 
 	// move file pointer to specified offset
@@ -133,13 +140,13 @@ void ExtractFile(BinaryReader& binReader, const FileEntry& entry) {
 	std::ofstream out(entry.name, std::ios::binary);
 	if (!out) {
 		std::cerr << "Failed to create output file!" << std::endl;
-		exit(1);
+		throw std::runtime_error("Failed to create output file!");
 	}
 
 	out.write(reinterpret_cast<char*>(data.data()), data.size());
 
 	if (!out) {
 		std::cerr << "Failed to write bytes" << std::endl;
-		exit(1);
+		throw std::runtime_error("Failed to write bytes!");
 	}
 }
