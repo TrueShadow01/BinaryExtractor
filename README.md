@@ -49,17 +49,21 @@ Each layer validates its own data to ensure structural integrity.
 ---
 
 ### Archive Format
-[Magic](4 bytes)<br>
-[Version](4 bytes)<br>
-[FileCount](4 bytes)<br>
+```
+[Magic](4 bytes)
+[Version](4 bytes)
+[FileCount](4 bytes)
+```
 
-For each file:<br>
-[NameLength](4 bytes)<br>
-[Name](NameLength bytes)<br>
+For each file:
+```
+[NameLength](4 bytes)
+[Name](NameLength bytes)
 [Size](4 bytes)<br>
 [Offset](4 bytes)<br>
 
-[File Data...]<br>
+[File Data...]
+```
 
 ### Rules
 - Data region must not overlap metadata
