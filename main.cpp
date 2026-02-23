@@ -25,12 +25,16 @@ constexpr uint32_t MAGIC_FORG = 0x47524F46;
 
 void ExtractFile(BinaryReader& binReader, const FileEntry& entry);
 
-int main(int argc, char* argcv[]) {
+int main(int argc, char* argv[]) {
 	try {
 		std::cout << "Custom BIN Extractor\n" << std::endl;
 
+		if (argc < 2) {
+			throw std::runtime_error("Usage: BinaryExtractor.exe <archive file>");
+		}
+
 		// open the specified file in binary format and check if we are able to open it
-		std::ifstream file("E:\\Extractor Test Files\\test.bin", std::ios::binary);
+		std::ifstream file(argv[1], std::ios::binary);
 		if (!file.is_open()) {
 			std::cerr << "Cannot open File!" << std::endl;
 			throw std::runtime_error("Unable to open File!");
