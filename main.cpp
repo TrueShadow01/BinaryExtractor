@@ -37,7 +37,7 @@ int main(int argc, char* argv[]) {
 		std::ifstream file(argv[1], std::ios::binary);
 		if (!file.is_open()) {
 			std::cerr << "Cannot open File!" << std::endl;
-			throw std::runtime_error("Unable to open File!");
+			throw std::runtime_error("Unable to open File!\nFilename: " + std::string(argv[1]));
 		}
 
 		BinaryReader binReader(file);
