@@ -75,11 +75,17 @@ For each file:
 
 ## Usage
 
-```bash
-BinaryExtractor.exe <archive file>
+Extracting: 
+```
+BinaryExtractor.exe extract <archive file>
 ```
 
-Extracted files are written to the current directory.
+Packing:
+```
+BinaryExtractor.exe pack <inputDir> <outputFile>
+```
+
+Extracted and Packed files are written to the current directory.
 
 ## Safety
 The extractor performs strict validation:
