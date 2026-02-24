@@ -209,3 +209,23 @@ std::vector<PackerEntry> LoadDirectory(const std::filesystem::path& inputDir) {
 
 	return entries;
 }
+
+void CalcualteOffsets(std::vector<PackerEntry>& entries) {
+	constexpr uint32_t HEADER_SIZE = 12;
+
+	uint32_t metadataSize = HEADER_SIZE;
+
+	for (const auto& entry : entries) {
+		metadataSize += 4; // nameLength
+		metadataSize += static_cast<uint32_t>(entry.name.size());
+		metadataSize += 4; // size
+		metadataSize += 4; // offset
+	}
+
+	uint32_t currentOffset = metadataSize;
+
+	for (auto& entry : entries) {
+		entry.offset = currentOffset;
+		currentOffset += entry.size;
+	}
+}
