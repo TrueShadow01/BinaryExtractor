@@ -2,6 +2,7 @@
 #include <fstream>
 #include <string>
 #include <stdexcept>
+#include <filesystem>
 
 #include "BinaryReader.h"
 
@@ -20,6 +21,13 @@ struct FileEntry {
 };
 
 FileEntry ReadFileEntry(BinaryReader& binReader);
+
+struct PackerEntry {
+	std::string name;
+	uint32_t size;
+	uint32_t offset;
+	std::vector<uint8_t> data;
+};
 
 constexpr uint32_t MAGIC_FORG = 0x47524F46;
 
@@ -153,4 +161,51 @@ void ExtractFile(BinaryReader& binReader, const FileEntry& entry) {
 		std::cerr << "Failed to write bytes" << std::endl;
 		throw std::runtime_error("Failed to write bytes!");
 	}
+}
+
+std::vector<PackerEntry> LoadDirectory(const std::filesystem::path& inputDir) {
+	if (!std::filesystem::exists(inputDir) || !std::filesystem::is_directory(inputDir)) {
+		throw std::runtime_error("Invalid input directory!");
+	}
+
+	std::vector<PackerEntry> entries;
+
+	for (const auto& dirEntry : std::filesystem::directory_iterator(inputDir)) {
+		if (!dirEntry.is_regular_file()) {
+			continue;
+		}
+
+		std::ifstream file(dirEntry.path(), std::ios::binary);
+		if (!file) {
+			throw std::runtime_error("Failed to open file: " + dirEntry.path().string() + "!");
+		}
+
+		file.seekg(0, std::ios::end);
+		std::streamsize fileSize = file.tellg();
+		file.seekg(0, std::ios::beg);
+
+		if (fileSize < 0) {
+			throw std::runtime_error("Invalid file size!");
+		}
+
+		if (fileSize > UINT32_MAX) {
+			throw std::runtime_error("File too large for archive format!");
+		}
+
+		std::vector<uint8_t> buffer(static_cast<size_t>(fileSize));
+
+		if (!file.read(reinterpret_cast<char*>(buffer.data()), fileSize)) {
+			throw std::runtime_error("Failed to read file data!");
+		}
+
+		PackerEntry entry;
+		entry.name = dirEntry.path().filename().string();
+		entry.size = static_cast<uint32_t>(fileSize);
+		entry.offset = 0; // calculating offset later
+		entry.data = std::move(buffer);
+
+		entries.push_back(std::move(entry));
+	}
+
+	return entries;
 }
