@@ -30,52 +30,81 @@ struct PackerEntry {
 };
 
 constexpr uint32_t MAGIC_FORG = 0x47524F46;
+constexpr uint32_t HEADER_SIZE = 12;
+constexpr uint32_t VERSION = 1;
 
 void ExtractFile(BinaryReader& binReader, const FileEntry& entry);
+void CalcualteOffsets(std::vector<PackerEntry>& entries);
+std::vector<PackerEntry> LoadDirectory(const std::filesystem::path& inputDir);
+void WriteArchive(const std::filesystem::path& outputFile, const std::vector<PackerEntry>& entries);
 
 int main(int argc, char* argv[]) {
 	try {
-		std::cout << "Custom BIN Extractor\n" << std::endl;
+		std::cout << "Custom BIN Extractor/Packer\n" << std::endl;
 
-		if (argc < 2) {
-			throw std::runtime_error("Usage: BinaryExtractor.exe <archive file>");
+		if (argc < 3) {
+			throw std::runtime_error("Usage:\nBinaryExtractor.exe extract <archive file>\nBinaryExtractor.exe pack <input_dir> <output_archive>");
 		}
+		std::string mode = argv[1];
 
-		// open the specified file in binary format and check if we are able to open it
-		std::ifstream file(argv[1], std::ios::binary);
-		if (!file.is_open()) {
-			std::cerr << "Cannot open File!" << std::endl;
-			throw std::runtime_error("Unable to open File!\nFilename: " + std::string(argv[1]));
-		}
+		if (mode == "extract") {
+			if (argc != 3) {
+				throw std::runtime_error("Usage: BinaryExtractor.exe extract <archive file>");
+			}
 
-		BinaryReader binReader(file);
-		ArchiveHeader header = ReadHeader(binReader);
+			std::filesystem::path archivePath = argv[2];
 
-		// loop over each entry and store it in a vector incase there is more than 1 file
-		std::vector<FileEntry> entries;
-		for (uint32_t i = 0; i < header.fileCount; i++) {
-			entries.push_back(ReadFileEntry(binReader));
-		}
+			// open the specified file in binary format and check if we are able to open it
+			std::ifstream file(archivePath, std::ios::binary);
+			if (!file.is_open()) {
+				std::cerr << "Cannot open File!" << std::endl;
+				throw std::runtime_error("Unable to open File!\nFilename: " + std::string(argv[1]));
+			}
 
-		size_t metadataEnd = binReader.Tell();
-		for (const auto& entry : entries) {
-			if (entry.offset < metadataEnd) {
-				std::cerr << "Entry offset inside metadata region!" << std::endl;
-				throw std::runtime_error("Entry offset inside metadata region!");
+			BinaryReader binReader(file);
+			ArchiveHeader header = ReadHeader(binReader);
+
+			// loop over each entry and store it in a vector incase there is more than 1 file
+			std::vector<FileEntry> entries;
+			for (uint32_t i = 0; i < header.fileCount; i++) {
+				entries.push_back(ReadFileEntry(binReader));
+			}
+
+			size_t metadataEnd = binReader.Tell();
+			for (const auto& entry : entries) {
+				if (entry.offset < metadataEnd) {
+					std::cerr << "Entry offset inside metadata region!" << std::endl;
+					throw std::runtime_error("Entry offset inside metadata region!");
+				}
+			}
+
+			std::cout << "File magic: " << std::hex << header.magic << std::endl;;
+			std::cout << "File Version: " << header.version << std::endl;
+			std::cout << "File Count: " << header.fileCount << std::endl;
+
+			// print values from vector
+			for (const auto& entry : entries) {
+				std::cout << "Name: " << entry.name << std::endl;
+				std::cout << "Size: " << entry.size << std::endl;
+				std::cout << "Offset: " << entry.offset << std::endl;
+				ExtractFile(binReader, entry);
 			}
 		}
+		else if (mode == "pack") {
+			if (argc != 4) {
+				throw std::runtime_error("Usage: BinaryExtractor.exe <input_dir> <output_archive>");
+			}
 
-		std::cout << "File magic: " << std::hex << header.magic << std::endl;;
-		std::cout << "File Version: " << header.version << std::endl;
-		std::cout << "File Count: " << header.fileCount << std::endl;
+			std::filesystem::path inputDir = argv[2];
+			std::filesystem::path outputFile = argv[3];
 
-		// print values from vector
-		for (const auto& entry : entries) {
-			std::cout << "Name: " << entry.name << std::endl;
-			std::cout << "Size: " << entry.size << std::endl;
-			std::cout << "Offset: " << entry.offset << std::endl;
-			ExtractFile(binReader, entry);
+			auto entries = LoadDirectory(inputDir);
+			CalcualteOffsets(entries);
+			WriteArchive(outputFile, entries);
+
+			std::cout << "Archive successfully created!" << std::endl;
 		}
+
 	}
 	catch (const std::exception& e) {
 		std::cerr << "Error: " << e.what() << std::endl;
@@ -211,8 +240,6 @@ std::vector<PackerEntry> LoadDirectory(const std::filesystem::path& inputDir) {
 }
 
 void CalcualteOffsets(std::vector<PackerEntry>& entries) {
-	constexpr uint32_t HEADER_SIZE = 12;
-
 	uint32_t metadataSize = HEADER_SIZE;
 
 	for (const auto& entry : entries) {
@@ -227,5 +254,36 @@ void CalcualteOffsets(std::vector<PackerEntry>& entries) {
 	for (auto& entry : entries) {
 		entry.offset = currentOffset;
 		currentOffset += entry.size;
+	}
+}
+
+void WriteArchive(const std::filesystem::path& outputFile, const std::vector<PackerEntry>& entries) {
+	std::ofstream out(outputFile, std::ios::binary);
+	if (!out) {
+		throw std::runtime_error("Failed to create output archive!");
+	}
+
+	uint32_t fileCount = static_cast<uint32_t>(entries.size());
+
+	out.write(reinterpret_cast<const char*>(&MAGIC_FORG), 4);
+	out.write(reinterpret_cast<const char*>(&VERSION), 4);
+	out.write(reinterpret_cast<const char*>(&fileCount), 4);
+
+	for (const auto& entry : entries) {
+		uint32_t nameLength = static_cast<uint32_t>(entry.name.size());
+
+		out.write(reinterpret_cast<const char*>(&nameLength), 4);
+		out.write(entry.name.data(), nameLength);
+		out.write(reinterpret_cast<const char*>(&entry.size), 4);
+		out.write(reinterpret_cast<const char*>(&entry.offset), 4);
+	}
+
+	// write data after metadata is written
+	for (const auto& entry : entries) {
+		out.write(reinterpret_cast<const char*>(entry.data.data()), entry.data.size());
+
+		if (!out) {
+			throw std::runtime_error("Failed while writing archive!");
+		}
 	}
 }
