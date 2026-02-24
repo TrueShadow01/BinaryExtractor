@@ -92,7 +92,7 @@ The extractor performs strict validation:
 Corrupted or malicious archives are rejected safely.
 
 ## Future Improvements
-- Archive creation (packer)
+- Archive creation (packer) - DONE
 - Compression support
 - Alignment handling
 - Hash-based file indexing
